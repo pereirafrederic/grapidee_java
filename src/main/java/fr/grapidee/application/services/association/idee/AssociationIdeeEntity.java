@@ -10,27 +10,25 @@ import fr.grapidee.application.services.commun.AbstractId;
 import fr.grapidee.application.services.entite.grappe.GrappeEntity;
 import fr.grapidee.application.services.entite.idee.IdeeEntity;
 
-@Entity(name="assoidee")
+@Entity(name = "assoidee")
 @Table(name = "asso_idee", schema = "grapidee_v2")
-public class AssociationIdeeEntity extends AbstractId{
-	
+public class AssociationIdeeEntity extends AbstractId {
+
 	private static final long serialVersionUID = 1L;
-	
+
 	@Column(unique = true, nullable = false, length = 100)
 	private String liaison;
-	
-	
-	
-	@ManyToOne 
+
+	@ManyToOne
 	@JoinColumn(name = "maitre_id")
 	private IdeeEntity ideeMaitre;
-	
+
 	@ManyToOne
 	@JoinColumn(name = "esclave_id")
 	private IdeeEntity ideeEsclave;
-	
+
 	@ManyToOne
-	@JoinColumn(name="grappe_id")
+	@JoinColumn(name = "grappe_id")
 	private GrappeEntity grappe;
 
 	public String getLiaison() {
@@ -63,6 +61,6 @@ public class AssociationIdeeEntity extends AbstractId{
 
 	public void setGrappe(GrappeEntity grappe) {
 		this.grappe = grappe;
-	}	
-	
 	}
+
+}

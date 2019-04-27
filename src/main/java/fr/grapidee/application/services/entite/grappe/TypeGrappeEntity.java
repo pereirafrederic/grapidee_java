@@ -5,11 +5,9 @@ import javax.persistence.Table;
 
 import fr.grapidee.application.services.commun.CommunLightEntity;
 
-@Entity(name="typeGrappe")
+@Entity(name = "typeGrappe")
 @Table(name = "type_grappe", schema = "grapidee_v2")
 public class TypeGrappeEntity extends CommunLightEntity {
 	private static final long serialVersionUID = 1L;
-	
-
 
 }

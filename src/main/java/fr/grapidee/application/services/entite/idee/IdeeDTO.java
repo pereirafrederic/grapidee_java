@@ -9,7 +9,7 @@ import fr.grapidee.application.services.entite.grappe.GrappeDTO;
 
 public class IdeeDTO extends CommunDTO {
 
-	private OganisationIdeeDTO Idees;
+	private OganisationIdeeBaseDTO organisation;
 
 	private List<GrappeDTO> grappes = new ArrayList<GrappeDTO>();
 
@@ -21,12 +21,14 @@ public class IdeeDTO extends CommunDTO {
 		this.grappes = grappes;
 	}
 
-	public OganisationIdeeDTO getIdees() {
-		return Idees;
+	public OganisationIdeeBaseDTO getOrganisation() {
+		return organisation;
 	}
 
-	public void setIdees(OganisationIdeeDTO idees) {
-		Idees = idees;
+	public void setOrganisation(OganisationIdeeBaseDTO organisation) {
+		this.organisation = organisation;
 	}
+
+
 
 }

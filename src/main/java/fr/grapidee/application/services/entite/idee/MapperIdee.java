@@ -1,11 +1,11 @@
 package fr.grapidee.application.services.entite.idee;
 
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Iterator;
+import java.util.HashMap;
 import java.util.List;
-import java.util.ListIterator;
+import java.util.Map;
+import java.util.Optional;
+import java.util.function.Predicate;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -14,9 +14,9 @@ import fr.grapidee.application.services.association.grappe.AssociationGrappeEnti
 import fr.grapidee.application.services.association.idee.AssociationIdeeEntity;
 import fr.grapidee.application.services.association.idee.IdeeEsclaveDTO;
 import fr.grapidee.application.services.commun.CommunBodyDTO;
+import fr.grapidee.application.services.commun.Options;
 import fr.grapidee.application.services.commun.TypeChargement;
 import fr.grapidee.application.services.entite.grappe.GrappeDTO;
-import fr.grapidee.application.services.entite.grappe.GrappeEntity;
 import fr.grapidee.application.services.entite.grappe.MapperGrappe;
 
 @Service
@@ -25,28 +25,28 @@ public class MapperIdee {
 	@Autowired
 	private MapperGrappe mapperGrappe;
 
-	public IdeeDTO mappeOne(IdeeEntity entity, TypeChargement typeChargement,
-			int niveau) {
-		System.out.println("mappe one - " + entity.getId());
+	public IdeeDTO mappeOne(IdeeEntity entity, int niveau) {
+		System.out.println("mappe one - " + entity.getId() + " - "
+				+ entity.getNom());
 
 		IdeeDTO retour = new IdeeDTO();
 		mappeBase(retour, entity);
 
 		if (niveau > 1) {
-			if (TypeChargement.estAuMoins(typeChargement, TypeChargement.ARBRE)) {
+			if (niveau > 3) {
+
 				if (null != entity.getListeAssoGrappe()
 						&& entity.getListeAssoGrappe().size() > 0) {
 					retour.setGrappes(mapperGrappe.mappeAssoGrappes(entity
 							.getListeAssoGrappe()));
 				}
 			}
-			if (TypeChargement.estAuMoins(typeChargement,
-					TypeChargement.COMPLET)) {
+			if (niveau > 2) {
 
 				if (null != entity.getListeAssoIdee()
 						&& entity.getListeAssoIdee().size() > 0) {
-					retour.setIdees(mappeEsclaves(entity.getListeAssoIdee(),
-							typeChargement, niveau - 1));
+					retour.setOrganisation(mappeEsclaves(entity.getListeAssoIdee(),
+							niveau - 1));
 				}
 			}
 
@@ -54,100 +54,172 @@ public class MapperIdee {
 		return retour;
 	}
 
-	private OganisationIdeeDTO mappeEsclaves(
-			List<AssociationIdeeEntity> entitys, TypeChargement typeChargement,
-			int niveau) {
+	private OganisationIdeeBaseDTO mappeEsclaves(
+			List<AssociationIdeeEntity> entitys, int niveau) {
 
-		OganisationIdeeDTO organisation = new OganisationIdeeDTO();
+		OganisationIdeeBaseDTO organisation = new OganisationIdeeBaseDTO();
 		for (AssociationIdeeEntity entity : entitys) {
-			System.out.println("mappe mappeEsclaves - " + entity.getId());
-			IdeeEsclaveDTO idee = mappeEsclave(entity, typeChargement, niveau);
 
-			if (null == entity.getGrappe()) {
-				organisation.getIdees().add(idee);
+			IdeeEsclaveDTO idee = mappeEsclave(entity, niveau);
+			System.out.println("mappe mappeEsclaves - " + idee.getNom()
+					+ " niveau " + niveau);
+
+			if (null == entity.getGrappe()
+					&& (entity.getIdeeEsclave().getListeAssoGrappe() == null || entity
+							.getIdeeEsclave().getListeAssoGrappe().isEmpty())) {
+				organisation.getIdeeEsclaves().add(idee);
 			} else {
+				GrappeDTO grappeparent = null;
+				GrappeDTO grappeFille = null;
+				if (null == entity.getGrappe()) {
+					if (null != entity.getIdeeEsclave().getListeAssoGrappe()
+							&& null != entity.getIdeeEsclave()
+									.getListeAssoGrappe().get(0)
+							&& null != entity.getIdeeEsclave()
+									.getListeAssoGrappe().get(0).getGrappe()) {
+						grappeFille = mapperGrappe.mappeBase(entity
+								.getIdeeEsclave().getListeAssoGrappe().get(0)
+								.getGrappe());
 
-				List<GrappeEntity> listeOrdonneMap = getOrdonneArbre(entity
-						.getGrappe());
-				Collections.reverse(listeOrdonneMap);
+						if (null != entity.getIdeeEsclave()
+								.getListeAssoGrappe().get(0).getGrappe()
+								.getGrappeParent()) {
+							grappeparent = mapperGrappe.mappeBase(entity
+									.getIdeeEsclave().getListeAssoGrappe()
+									.get(0).getGrappe().getGrappeParent());
+						}
+					}
 
-				boolean stop = false;
-				int i = 0;
+				} else {
+					grappeFille = mapperGrappe.mappeBase(entity.getGrappe());
+					if (null != entity.getGrappe().getGrappeParent()) {
+						grappeparent = mapperGrappe.mappeBase(entity
+								.getGrappe().getGrappeParent());
+					}
+				}
+				if (grappeFille == null) {
+					organisation.getIdeeEsclaves().add(idee);
+				} else {
+					System.out.println("recherche de " + grappeFille.getNom());
 
-				OganisationIdeeDTO organisationCourante = organisation;
-				while (stop) {
-					GrappeEntity grappeCourante = listeOrdonneMap.get(i);
-					System.out.println("mappe mappeEsclaves - "
-							+ entity.getId() + "retrouver grappe "
-							+ entity.getGrappe().getId() + " sur organisation "
-							+ organisation.getNom() + "et les orgas filles "
-							+ organisation.getMapIdees());
-					int codeRetour = retrouverOuCreerOrganisation(
-							organisationCourante, entity.getGrappe(),
-							grappeCourante, idee);
+					OganisationIdeeDTO orgaRecherche = mapperOrganisationBase(grappeFille);
+					orgaRecherche.getIdeeEsclaves().add(idee);
 
-					switch (codeRetour) {
-					case 1:
-						stop = true; // car on ajouté l'idée au bonne endroit
-						break;
-					case 2:
+					if (grappeparent != null){
+					if (organisation.getMapIdees().containsKey(
+							grappeparent.getId())) {
+						OganisationIdeeDTO orgaParentTrouve = organisation
+								.getMapIdees().get(grappeparent.getId());
+						if (orgaParentTrouve.getMapIdees().containsKey(
+								grappeFille.getId())) {
+							// il faut ajouter l'idée dans la fille déjà
+							// présente
+							OganisationIdeeDTO orgaFilleTrouve = orgaParentTrouve
+									.getMapIdees().get(grappeFille.getId());
+							orgaFilleTrouve.getIdeeEsclaves().add(idee);
+						} else {
+							// il faut ajouter la fille avec l'idée
+							orgaParentTrouve.getMapIdees().put(
+									orgaRecherche.getId(), orgaRecherche);
+						}
 
-						// ici on a trouve la grappe, alors on continue à explorer 
-						//( avec les orgas filles et la grappe suivante )
-						
-						OganisationIdeeDTO orga = organisationCourante
-								.getMapIdees().get(entity.getGrappe().getId());
-						organisationCourante = orga;
-						i++;
-						break;
-					case 3:
-						grappeCourante = null;
-						OganisationIdeeDTO newOrga = mapperOrganisation(entity,
-								 idee);
-						organisation.getMapIdees()
-								.put(newOrga.getId(), newOrga);
-						stop = true; // car on a rajoute tout la grappe
-						break;
-					default:
-						break;
+					} else {
+						// faut ajouter le parent et la fille avec l'idée
+						OganisationIdeeDTO orgaParent = mapperOrganisationBase(grappeparent);
+						orgaParent.getMapIdees().put(orgaRecherche.getId(),
+								orgaRecherche);
+						organisation.getMapIdees().put(orgaParent.getId(),
+								orgaParent);
+					}
+					}else{
+						organisation.getMapIdees().put(orgaRecherche.getId(),
+								orgaRecherche);
 					}
 
 				}
+
 			}
 
 		}
-		return organisation;
+
+		for (Long idGrappeParent : organisation.getMapIdees().keySet()) {
+			OganisationIdeeDTO grappParent = organisation.getMapIdees().get(idGrappeParent);
+			for (Long idGrappeFille : grappParent.getMapIdees().keySet()) {
+				OganisationIdeeDTO grappeFille = grappParent.getMapIdees().get(idGrappeFille);
+				grappParent.getGrappes().add(grappeFille);
+			}
+			grappParent.getMapIdees().clear();
+			organisation.getOrganisationFilles().add(grappParent);
+		}
+		organisation.getMapIdees().clear();
+		return organisation ;
 	}
 
-	private OganisationIdeeDTO mapperOrganisation( AssociationIdeeEntity entity, IdeeEsclaveDTO idee) {
-		OganisationIdeeDTO orgaParent=mappeOrganisation(entity.getGrappe(),null, idee);
-		return orgaParent;
+	private void nettoyerOrganisationIdee(OganisationIdeeDTO organisationIdee) {
+		// System.out.println("avant nettoyage nettoyerOrganisationIdee - "
+		// + organisationIdee.getNom() + "avec "
+		// + organisationIdee.getMapIdees().size());
+		if (organisationIdee.getMapIdees().size() > 0) {
+			int i = 1;
+			for (OganisationIdeeDTO organisationIdeefille : organisationIdee
+					.getMapIdees().values()) {
+				// System.out.println("---FILLE" + i);
+				// System.out.println("nettoyerOrganisationIdee fille - "
+				// + organisationIdeefille.getNom() + "avec "
+				// + organisationIdee.getMapIdees().size());
+				nettoyerOrganisationIdee(organisationIdeefille);
+				organisationIdee.getGrappes().add(organisationIdeefille);
+				i++;
+			}
+		}
+
+		organisationIdee.getMapIdees().clear();
+		// System.out.println("apres nettoyage nettoyerOrganisationIdee - "
+		// + organisationIdee.getNom() + "avec "
+		// + organisationIdee.getMapIdees().size());
 	}
 
-	private OganisationIdeeDTO mappeOrganisation(GrappeEntity grappe, OganisationIdeeDTO orgaPetiteFille, IdeeEsclaveDTO idee) {
-		
+	private OganisationIdeeDTO mappeOrganisation(GrappeDTO grappe,
+			OganisationIdeeDTO orgaSuperieur, IdeeEsclaveDTO idee) {
+
 		OganisationIdeeDTO orga = null;
 		OganisationIdeeDTO orgaBase = mapperOrganisationBase(grappe);
-		if(orgaPetiteFille != null){
-			orgaBase.getMapIdees().put(orgaPetiteFille.getId(), orgaPetiteFille);
+		if (orgaSuperieur != null) {
+			orgaSuperieur.getMapIdees().put(grappe.getId(), orgaBase);
 		}
-		else{
-			orgaBase.getIdees().add(idee);
-		}
-		
-		if(null != grappe.getGrappeParent()){
-			
-			orga= mappeOrganisation(grappe.getGrappeParent(),orgaBase,idee);	
-		}
-		else {
+
+		if (null != grappe.getGrappeParent()) {
+
+			orga = mappeOrganisation(grappe.getGrappeParent(), orgaBase, idee);
+		} else {
+			orgaBase.getIdeeEsclaves().add(idee);
 			orga = orgaBase;
-			
+
 		}
-		
+
 		return orga;
 	}
 
-	private OganisationIdeeDTO mapperOrganisationBase(GrappeEntity grappe) {
+	private GrappeDTO getGrappeInverse(GrappeDTO grappe, GrappeDTO grappeFille,
+			boolean stop) {
+
+		GrappeDTO magrappe = new GrappeDTO();
+
+		if (!stop && grappe.getGrappeParent() != null) {
+
+			GrappeDTO grappeParent = grappe.getGrappeParent();
+			grappe.setGrappeParent(grappeFille);
+			magrappe = getGrappeInverse(grappeParent, grappe, true);
+
+		} else {
+			grappe.setGrappeParent(grappeFille);
+			magrappe = grappe;
+
+		}
+		return magrappe;
+	}
+
+	private OganisationIdeeDTO mapperOrganisationBase(GrappeDTO grappe) {
 		OganisationIdeeDTO orgafille;
 		orgafille = new OganisationIdeeDTO();
 		orgafille.setId(grappe.getId());
@@ -156,64 +228,32 @@ public class MapperIdee {
 		return orgafille;
 	}
 
-	private int retrouverOuCreerOrganisation(OganisationIdeeDTO organisation,
-			GrappeEntity grappeEntityRecherche, GrappeEntity grappeEntity,
-			IdeeEsclaveDTO idee) {
-
-		if (organisation.getMapIdees().containsKey(grappeEntity.getId())) {
-
-			OganisationIdeeDTO orga = organisation.getMapIdees().get(
-					grappeEntity.getId());
-			if (grappeEntityRecherche.getId() == grappeEntity.getId()) {
-				orga.getIdees().add(idee);
-				organisation.getMapIdees().replace(grappeEntity.getId(), orga);
-				return 1;// retrouve et ajouté
-			} else {
-				System.out
-						.println("mappe mappeEsclaves - grappe trouve, on passe aux filles");
-				retrouverOuCreerOrganisation(orga, grappeEntityRecherche,
-						grappeEntity, idee);
-				return 2;// trouve, mais faut aller au fils
-			}
-
-		} else {
-
-			return 3; // pas trouvé, mais c'est la bonne grappe
-		}
-	}
-
-	private List<GrappeEntity> getOrdonneArbre(GrappeEntity grappe) {
-
-		List<GrappeEntity> list = new ArrayList<GrappeEntity>();
-		list.add(grappe);
-
-		if (null != grappe.getGrappeParent()) {
-			list.addAll(getOrdonneArbre(grappe.getGrappeParent()));
-		}
-
-		return list;
-	}
-
-	private IdeeEsclaveDTO mappeEsclave(AssociationIdeeEntity entity,
-			TypeChargement typeChargement, int niveau) {
+	private IdeeEsclaveDTO mappeEsclave(AssociationIdeeEntity entity, int niveau) {
 		IdeeEsclaveDTO retour = new IdeeEsclaveDTO();
 		if (null != entity.getLiaison()) {
 			retour.setLiaison(entity.getLiaison());
 		}
-		mappeOne(entity.getIdeeEsclave(), typeChargement, niveau);
-
+		IdeeDTO ideeEsclave = mappeOne(entity.getIdeeEsclave(), niveau);
+		mapperIdeeDtoToIdeeEsclave(retour, ideeEsclave);
 		return retour;
+	}
+
+	private void mapperIdeeDtoToIdeeEsclave(IdeeEsclaveDTO retour,
+			IdeeDTO ideeEsclave) {
+		retour.setId(ideeEsclave.getId());
+		retour.setNom(ideeEsclave.getNom());
+		retour.setDescription(ideeEsclave.getDescription());
+		retour.setGrappes(ideeEsclave.getGrappes());
+		retour.setOrganisation(ideeEsclave.getOrganisation());
 	}
 
 	public List<IdeeDTO> mappeAll(Iterable<IdeeEntity> entitys, int nbreNiveau) {
 		List<IdeeDTO> retour = new ArrayList<IdeeDTO>();
-		entitys.forEach(entity -> retour.add(mappeOne(entity,
-				TypeChargement.BASIQUE, nbreNiveau)));
+		entitys.forEach(entity -> retour.add(mappeOne(entity, nbreNiveau)));
 		return retour;
 	}
 
 	private void mappeBase(IdeeDTO retour, IdeeEntity entity) {
-
 		retour.setId(entity.getId());
 		retour.setNom(entity.getNom());
 		retour.setDescription(entity.getDescription());
@@ -221,18 +261,18 @@ public class MapperIdee {
 	}
 
 	public List<IdeeDTO> mappeAssoIdees(List<AssociationGrappeEntity> entitys,
-			TypeChargement typeChargement, int nbrNiveauIdee) {
+			int nbrNiveauIdee) {
 		List<IdeeDTO> retour = new ArrayList<IdeeDTO>();
 		for (AssociationGrappeEntity entity : entitys) {
-			retour.add(mappeAssoIdee(entity, typeChargement, nbrNiveauIdee));
+			retour.add(mappeAssoIdee(entity, nbrNiveauIdee));
 		}
 
 		return retour;
 	}
 
 	private IdeeDTO mappeAssoIdee(AssociationGrappeEntity entity,
-			TypeChargement typeChargement, int nbrNiveauIdee) {
-		return mappeOne(entity.getIdee(), typeChargement, nbrNiveauIdee);
+			int nbrNiveauIdee) {
+		return mappeOne(entity.getIdee(), nbrNiveauIdee);
 	}
 
 	public IdeeEntity mappeEntity(CommunBodyDTO ideeDto) {
@@ -240,12 +280,32 @@ public class MapperIdee {
 		idee.setNom(ideeDto.getNom());
 		idee.setDescription(ideeDto.getDescription());
 		return idee;
-		
+
 	}
 
-	public IdeeEntity mappeEntity(IdeeEntity ideeExistante, IdeePutBodyDTO ideeDto) {
+	public IdeeEntity mappeEntity(IdeeEntity ideeExistante,
+			IdeePutBodyDTO ideeDto) {
 		ideeExistante.setNom(ideeDto.getNom());
 		ideeExistante.setDescription(ideeDto.getDescription());
 		return ideeExistante;
+	}
+
+	public List<Options> mappeAllOptions(List<IdeeEntity> all) {
+		List<Options> retour = new ArrayList<Options>();
+		all.stream().forEach( idee -> retour.add(mappeOption(idee)));
+		
+		return retour;
+	}
+
+	private Options mappeOption(IdeeEntity entity) {
+		Options retour = new Options();
+		retour.setValue(entity.getId());
+		if(entity.getListeAssoGrappe() != null &&entity.getListeAssoGrappe().size()>0){
+			retour.setLabel(entity.getNom()+" [" +entity.getListeAssoGrappe().get(0).getGrappe().getNom() +"]" );	
+		}else
+		{
+		retour.setLabel(entity.getNom() );
+		}
+		return retour;
 	}
 }

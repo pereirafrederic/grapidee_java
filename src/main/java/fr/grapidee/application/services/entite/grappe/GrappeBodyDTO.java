@@ -2,7 +2,7 @@ package fr.grapidee.application.services.entite.grappe;
 
 import fr.grapidee.application.services.commun.CommunBodyDTO;
 
-public class GrappeBodyDTO extends CommunBodyDTO{
+public class GrappeBodyDTO extends CommunBodyDTO {
 	private Long idParent;
 
 	public Long getIdParent() {
@@ -12,6 +12,5 @@ public class GrappeBodyDTO extends CommunBodyDTO{
 	public void setIdParent(Long idParent) {
 		this.idParent = idParent;
 	}
-	
 
 }

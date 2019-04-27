@@ -20,14 +20,16 @@ public abstract class ComparatorSort {
 
 		return liste;
 	}
-	
-	
-	public static List<AssociationIdeeEntity> getIdeeSortByGrappe(List<AssociationIdeeEntity> liste) {
+
+	public static List<AssociationIdeeEntity> getIdeeSortByGrappe(
+			List<AssociationIdeeEntity> liste) {
 
 		Comparator<AssociationIdeeEntity> byName = new Comparator<AssociationIdeeEntity>() {
 			@Override
-			public int compare(AssociationIdeeEntity o1, AssociationIdeeEntity o2) {
-				return o1.getGrappe().getNom().compareTo(o2.getGrappe().getNom());
+			public int compare(AssociationIdeeEntity o1,
+					AssociationIdeeEntity o2) {
+				return o1.getGrappe().getNom()
+						.compareTo(o2.getGrappe().getNom());
 			}
 		};
 		liste.sort(byName);

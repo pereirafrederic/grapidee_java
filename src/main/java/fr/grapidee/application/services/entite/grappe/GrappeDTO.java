@@ -7,16 +7,15 @@ import fr.grapidee.application.services.commun.dto.CommunDTO;
 import fr.grapidee.application.services.entite.idee.IdeeDTO;
 
 public class GrappeDTO extends CommunDTO {
-	
-	private List<IdeeDTO> Idees =null;
-	
-	private GrappeDTO grappeParent= null;
 
-	private List<GrappeDTO> grappeEnfants= null;
+	private List<IdeeDTO> Idees = null;
 
-	
+	private GrappeDTO grappeParent = null;
+
+	private List<GrappeDTO> grappeEnfants = null;
+
 	private String type;
-	
+
 	public List<IdeeDTO> getIdees() {
 		return Idees;
 	}
@@ -48,7 +47,5 @@ public class GrappeDTO extends CommunDTO {
 	public void setGrappeEnfants(List<GrappeDTO> grappeEnfants) {
 		this.grappeEnfants = grappeEnfants;
 	}
-	
-	
 
 }

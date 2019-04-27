@@ -4,9 +4,9 @@ import fr.grapidee.application.services.entite.grappe.GrappeDTO;
 import fr.grapidee.application.services.entite.idee.IdeeDTO;
 
 public class IdeeEsclaveDTO extends IdeeDTO {
-	
+
 	private String liaison;
-	
+
 	private GrappeDTO grappe;
 
 	public GrappeDTO getGrappe() {
@@ -24,7 +24,5 @@ public class IdeeEsclaveDTO extends IdeeDTO {
 	public void setLiaison(String liaison) {
 		this.liaison = liaison;
 	}
-	
-	
 
 }

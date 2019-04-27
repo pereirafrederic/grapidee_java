@@ -12,8 +12,11 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 
 import fr.grapidee.application.services.commun.CommunBodyDTO;
+import fr.grapidee.application.services.commun.Options;
 import fr.grapidee.application.services.commun.TypeChargement;
 import fr.grapidee.application.services.commun.dto.CommunDTO;
+import fr.grapidee.application.services.entite.AccueilGrappeDto;
+import fr.grapidee.application.services.entite.idee.IdeeDTO;
 
 @RestController
 @RequestMapping(value = "/grapidee/grappe")
@@ -21,20 +24,35 @@ public class ControllerGrappe {
 
 	@Autowired
 	private GrappeService grappeService;
-	
+
 	@RequestMapping(method = RequestMethod.GET)
-	public List<CommunDTO> recupererToutesGrappes() {
+	@Transactional
+	public AccueilGrappeDto recupererToutesGrappes() {
 		return this.grappeService.findAll();
 	}
-	
 
-
-	@RequestMapping(value = "/{id}/{typeChargement}", method = RequestMethod.GET)
-	public GrappeDTO recupererGrappeWithIdee(@PathVariable(value="id") Long id, @PathVariable(value="typeChargement") TypeChargement typeChargement) {
-		return this.grappeService.findOne(id, typeChargement);
+	@RequestMapping(value = "/options", method = RequestMethod.GET)
+	@Transactional
+	public List<Options> findAllOptions() {
+		return this.grappeService.findAllOptions();
 	}
 	
+	@RequestMapping(value = "/maitres", method = RequestMethod.GET)
+	public List<GrappeDTO> recupererIdeesMaitres() {
+		return this.grappeService.recupererGrappesMaitres();
+	}
 
+	
+	@RequestMapping(value = "/orphelines", method = RequestMethod.GET)
+	public List<GrappeDTO> recupererIdeesOrphelines() {
+		return this.grappeService.recupererGrappesOrphelines();
+	}
+
+	@RequestMapping(value = "/{id}", method = RequestMethod.GET)
+	public GrappeDTO recupererGrappeWithIdee(
+			@PathVariable(value = "id") Long id) {
+		return this.grappeService.findOne(id);
+	}
 
 	@RequestMapping(method = RequestMethod.POST)
 	@Transactional
@@ -49,7 +67,7 @@ public class ControllerGrappe {
 			throws Exception {
 		return this.grappeService.putOne(grappe);
 	}
-	
+
 	@RequestMapping(method = RequestMethod.DELETE)
 	@Transactional
 	public GrappeDTO deleteGrappe(@RequestBody GrappeBodyDTO grappe)
