@@ -103,6 +103,11 @@ public class MapperIdee {
 					System.out.println("recherche de " + grappeFille.getNom());
 
 					OganisationIdeeDTO orgaRecherche = mapperOrganisationBase(grappeFille);
+							if(organisation.getMapIdees().containsKey(
+							grappeFille.getId())){
+								orgaRecherche = organisation.getMapIdees().get(grappeFille.getId());
+							}
+							
 					orgaRecherche.getIdeeEsclaves().add(idee);
 
 					if (grappeparent != null){
