@@ -53,8 +53,29 @@
 		</dependency>
 
 
-	</dependencies>
+<dependency>
+  <groupId>jboss.web</groupId>
+  <artifactId>servlet-api</artifactId>
+  <version>2.5</version>
+</dependency>
 
+	</dependencies>
+  <profiles>
+    <profile>
+      <id>jboss-public</id>
+      <repositories>
+        <repository>
+          <id>jboss-public-repository</id>
+          <name>JBoss Public Maven Repository Group</name>
+          <url>http://repository.jboss.org/nexus/content/groups/public/</url>
+        </repository>
+      </repositories>
+    </profile>
+  </profiles>
+
+  <activeProfiles>
+    <activeProfile>jboss-public</activeProfile>
+  </activeProfiles>
 	<build>
 		<plugins>
 			<plugin>
@@ -65,6 +86,7 @@
 					<target>1.8</target>
 				</configuration>
 			</plugin>
+			
 		</plugins>
 	</build>
 
